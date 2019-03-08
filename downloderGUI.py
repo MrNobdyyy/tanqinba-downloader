@@ -114,7 +114,11 @@ class Application(Application_ui):
         Application_ui.__init__(self, master)
 
     def Command2_Cmd(self, event=None):
-        if self.getUrl() == 0:
+        self.type = self.Combo1Var.get()
+        if self.type != '钢琴谱' and self.type != '吉他谱':
+            showerror('Error', 'Choose the type.')
+            return
+        if self.getUrl():
             return
         if self.download():
             return
@@ -145,14 +149,26 @@ class Application(Application_ui):
 
     def getUrl(self):
         id = self.Text1Var.get()
-        url = 'http://www.tan8.com/codeindex.php?d=web&c=weixin&m=piano&id={}'.format(id)
+        if self.type == '钢琴谱':
+            url = 'http://www.tan8.com/codeindex.php?d=web&c=weixin&m=piano&id={}'.format(id)
+        elif self.type == '吉他谱':
+            url = 'http://www.tan8.com/jitapu-{}.html'.format(id)
         try:
             req = requests.get(url=url)  # 爬取网站源码
             bf = BeautifulSoup(req.text, 'html.parser')  # 转为BS对象
-            imgUrlInPageList = bf.find_all('img', width='100%')  # 找到所有图片链接源代码
-            self.imgUrlStr = imgUrlInPageList[0].get('src')  # 找到第一个链接
-            titleInPageList = bf.find_all('h3', class_='content_title_1113')
-            self.title = titleInPageList[0].text
+
+
+            if self.type == '钢琴谱':
+                imgUrlInPageList = bf.find_all('img', width='100%')  # 找到所有图片链接源代码
+                self.imgUrlStr = imgUrlInPageList[0].get('src')  # 找到第一个链接
+                titleInPageList = bf.find_all('h3', class_='content_title_1113')
+                self.title = titleInPageList[0].text
+            elif self.type == '吉他谱':
+                imgUrlInPageList = bf.find_all('img', height="970")  # 找到所有图片链接源代码
+                self.imgUrlStr = imgUrlInPageList[0].get('src')  # 找到第一个链接
+                self.imgUrlStr = self.imgUrlStr.replace('image', 'web_image')
+                titleInPageList = bf.find_all('h1', class_='title_color')
+                self.title = titleInPageList[0].text
         except IndexError:
             showerror('ERROR', 'ID Error!')
             return 1
@@ -160,8 +176,22 @@ class Application(Application_ui):
     def picToBlackWhite(self, filePath):
         if self.Check2Var.get() == 1:
             img = Image.open(filePath)
-            imgBlackWhite = img.convert('L')
-            imgBlackWhite.save(filePath)
+            img = img.convert('RGBA')
+            H, L = img.size
+            for i in range(H):
+                for j in range(L):
+                    try:
+                        r, g, b, alpha = img.getpixel((i, j))
+                        if alpha==0:
+                            alpha = 100
+                            r = 255
+                            g = 255
+                            b = 255
+                            img.putpixel((i, j), (r, g, b, alpha))
+                    except Exception as e:
+                        continue
+            # imgBlackWhite = img.convert('L')
+            img.save(filePath)
 
     def newDict(self):
         if self.emptyPath():
