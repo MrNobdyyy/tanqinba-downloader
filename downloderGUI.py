@@ -13,6 +13,7 @@ from tkinter.messagebox import *
 #import tkinter.filedialog as tkFileDialog
 #import tkinter.simpledialog as tkSimpleDialog    #askstring()
 from tkinter import filedialog
+from PIL import Image
 
 class Application_ui(Frame):
     #这个类仅实现界面生成功能，具体事件处理代码在子类Application中。
@@ -113,8 +114,10 @@ class Application(Application_ui):
         Application_ui.__init__(self, master)
 
     def Command2_Cmd(self, event=None):
-        self.getUrl()
-        self.download()
+        if self.getUrl() == 0:
+            return
+        if self.download():
+            return
 
 
 
@@ -124,24 +127,20 @@ class Application(Application_ui):
         self.Text2Var.set(path)
 
     def download(self):
+        if self.newDict():
+            return 1
         n = 1
         while True:
             try:
-                if self.Text2Var.get() == '':
-                    showerror('Error', 'Path Error')
-                    return
-                request.urlretrieve(self.imgUrlStr, '%s/%s.png' % (
-                    self.Text2Var.get(), str(n)))  # 下载图片
-                self.imgUrlStr = self.imgUrlStr.replace(str(n - 1) + '.png',
-                                              str(n) + '.png')
-                # print('第%s张下载完成' % (str(n)))
+                request.urlretrieve(self.imgUrlStr, '%s/%s.png' % (self.path, str(n)))  # 下载图片
+                self.picToBlackWhite('%s/%s.png' % (self.path, str(n)))  # 黑白
+                self.imgUrlStr = self.imgUrlStr.replace(str(n - 1) + '.png', str(n) + '.png')
                 n += 1
-                # self.Text3Var.set(self.Text3Var.get() + '\n ')
             except:
                 # print('Done!')
-                yesNo = askyesno('Done!', '完成！打开文件夹？')
+                yesNo = askyesno('Done!', '“' + self.title + '” 下载完成！打开文件夹？')
                 if yesNo == True:
-                    os.startfile(self.Text2Var.get())
+                    os.startfile(self.path)
                 break
 
     def getUrl(self):
@@ -152,9 +151,35 @@ class Application(Application_ui):
             bf = BeautifulSoup(req.text, 'html.parser')  # 转为BS对象
             imgUrlInPageList = bf.find_all('img', width='100%')  # 找到所有图片链接源代码
             self.imgUrlStr = imgUrlInPageList[0].get('src')  # 找到第一个链接
+            titleInPageList = bf.find_all('h3', class_='content_title_1113')
+            self.title = titleInPageList[0].text
         except IndexError:
             showerror('ERROR', 'ID Error!')
-            return 0
+            return 1
+
+    def picToBlackWhite(self, filePath):
+        if self.Check2Var.get() == 1:
+            img = Image.open(filePath)
+            imgBlackWhite = img.convert('L')
+            imgBlackWhite.save(filePath)
+
+    def newDict(self):
+        if self.emptyPath():
+            return 1
+        if self.Check1Var.get() == 1:
+            self.path = self.Text2Var.get() + '/' + self.title
+            if os.path.exists(self.path):
+                showerror('目录存在', '目录 『' + self.path + '』已经存在！')
+                return 1
+            os.makedirs(self.path)
+        else:
+            self.path = self.Text2Var.get()
+
+    def emptyPath(self):
+        if self.Text2Var.get() == '':
+            showerror('Error', 'Path Error')
+            return 1
+
 if __name__ == "__main__":
     top = Tk()
     Application(top).mainloop()
