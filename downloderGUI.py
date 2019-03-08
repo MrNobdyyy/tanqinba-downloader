@@ -5,22 +5,14 @@ import os, sys
 from urllib import request
 from bs4 import BeautifulSoup
 
-if sys.version_info[0] == 2:
-    from Tkinter import *
-    from tkFont import Font
-    from ttk import *
-    #Usage:showinfo/warning/error,askquestion/okcancel/yesno/retrycancel
-    from tkMessageBox import *
-    #Usage:f=tkFileDialog.askopenfilename(initialdir='E:/Python')
-    #import tkFileDialog
-    #import tkSimpleDialog
-else:  #Python 3.x
-    from tkinter import *
-    from tkinter.font import Font
-    from tkinter.ttk import *
-    from tkinter.messagebox import *
-    #import tkinter.filedialog as tkFileDialog
-    #import tkinter.simpledialog as tkSimpleDialog    #askstring()
+
+from tkinter import *
+from tkinter.font import Font
+from tkinter.ttk import *
+from tkinter.messagebox import *
+#import tkinter.filedialog as tkFileDialog
+#import tkinter.simpledialog as tkSimpleDialog    #askstring()
+from tkinter import filedialog
 
 class Application_ui(Frame):
     #这个类仅实现界面生成功能，具体事件处理代码在子类Application中。
@@ -87,8 +79,8 @@ class Application_ui(Frame):
         self.Text3.text = lambda : self.Text3Var.get()
         self.Text3.place(relx=0.066, rely=0.557, relwidth=0.862, relheight=0.235)
 
-        self.Combo1List = ['Add items in design or code!',]
-        self.Combo1Var = StringVar(value='Add items in design or code!')
+        self.Combo1List = ['钢琴谱', '吉他谱']
+        self.Combo1Var = StringVar(value='乐谱类型')
         self.Combo1 = Combobox(self.top, text='Add items in design or code!', textvariable=self.Combo1Var, values=self.Combo1List, font=('微软雅黑',9))
         self.Combo1.setText = lambda x: self.Combo1Var.set(x)
         self.Combo1.text = lambda : self.Combo1Var.get()
@@ -121,37 +113,48 @@ class Application(Application_ui):
         Application_ui.__init__(self, master)
 
     def Command2_Cmd(self, event=None):
+        self.getUrl()
+        self.download()
+
+
+
+    def Command1_Cmd(self, event=None):
         '''浏览 点击后打开选择文件夹窗口'''
-        path = 'D:/programsTest/'
+        path = filedialog.askdirectory()
+        self.Text2Var.set(path)
+
+    def download(self):
+        n = 1
+        while True:
+            try:
+                if self.Text2Var.get() == '':
+                    showerror('Error', 'Path Error')
+                    return
+                request.urlretrieve(self.imgUrlStr, '%s/%s.png' % (
+                    self.Text2Var.get(), str(n)))  # 下载图片
+                self.imgUrlStr = self.imgUrlStr.replace(str(n - 1) + '.png',
+                                              str(n) + '.png')
+                # print('第%s张下载完成' % (str(n)))
+                n += 1
+                # self.Text3Var.set(self.Text3Var.get() + '\n ')
+            except:
+                # print('Done!')
+                yesNo = askyesno('Done!', '完成！打开文件夹？')
+                if yesNo == True:
+                    os.startfile(self.Text2Var.get())
+                break
+
+    def getUrl(self):
         id = self.Text1Var.get()
         url = 'http://www.tan8.com/codeindex.php?d=web&c=weixin&m=piano&id={}'.format(id)
         try:
             req = requests.get(url=url)  # 爬取网站源码
             bf = BeautifulSoup(req.text, 'html.parser')  # 转为BS对象
             imgUrlInPageList = bf.find_all('img', width='100%')  # 找到所有图片链接源代码
-            imgUrlStr = imgUrlInPageList[0].get('src')  # 找到第一个链接
+            self.imgUrlStr = imgUrlInPageList[0].get('src')  # 找到第一个链接
         except IndexError:
-            print('ID ERROR')
-            return
-        n = 1
-        while True:
-            try:
-                request.urlretrieve(imgUrlStr, '%s/%s.png' % (
-                path, str(n)))  # 下载图片
-                imgUrlStr = imgUrlStr.replace(str(n - 1) + '.png',
-                                              str(n) + '.png')
-                # print('第%s张下载完成' % (str(n)))
-                n += 1
-            except:
-                # print('Done!')
-                yesNo = askyesno('Done!', '完成！打开文件夹？')
-                if yesNo == True:
-                    os.startfile(path)
-                break
-
-    def Command1_Cmd(self, event=None):
-        pass
-
+            showerror('ERROR', 'ID Error!')
+            return 0
 if __name__ == "__main__":
     top = Tk()
     Application(top).mainloop()
