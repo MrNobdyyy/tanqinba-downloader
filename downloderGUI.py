@@ -75,7 +75,7 @@ class Application_ui(Frame):
         self.Label3.text = lambda : self.Label3Var.get()
         self.Label3.place(relx=0.066, rely=0.22, relwidth=0.245, relheight=0.049)
 
-        self.Text3Var = StringVar(value='输出')
+        self.Text3Var = StringVar(value='')
         self.Text3 = Text(self.top, font=('微软雅黑',9))
         # self.Text3.setText = lambda x: self.Text3Var.set(x)
         # self.Text3.text = lambda : self.Text3Var.get()
@@ -114,18 +114,14 @@ class Application(Application_ui):
     def __init__(self, master=None):
         Application_ui.__init__(self, master)
 
+        self.output('程序仅供学习和研究。禁止用于商业用途！一切后果作者不予承担，使用程序即代表同意\n'
+                    'GitHub源码：https://github.com/MrNobdyyy/tanqinba-downloader')
     def Command2_Cmd(self, event=None):
         self.type = self.Combo1Var.get()
         if self.type != '钢琴谱' and self.type != '吉他谱':
             showerror('Error', 'Choose the type.')
             return
-        # if self.getUrl():
-        #     return
         self.starting()
-        # if self.download():
-        #     return
-
-
 
     def Command1_Cmd(self, event=None):
         '''浏览 点击后打开选择文件夹窗口'''
@@ -133,7 +129,7 @@ class Application(Application_ui):
         self.Text2Var.set(path)
 
     def getUrl(self):
-        self.Text3.insert(INSERT, '正在获取下载链接......\n')
+        self.Text3.insert(INSERT, '\n\n正在获取下载链接......\n')
         id = self.Text1Var.get()
         if self.type == '钢琴谱':
             url = 'http://www.tan8.com/codeindex.php?d=web&c=weixin&m=piano&id={}'.format(id)
@@ -142,8 +138,6 @@ class Application(Application_ui):
         try:
             req = requests.get(url=url)  # 爬取网站源码
             bf = BeautifulSoup(req.text, 'html.parser')  # 转为BS对象
-
-
             if self.type == '钢琴谱':
                 imgUrlInPageList = bf.find_all('img', width='100%')  # 找到所有图片链接源代码
                 self.imgUrlStr = imgUrlInPageList[0].get('src')  # 找到第一个链接
@@ -160,7 +154,6 @@ class Application(Application_ui):
             showerror('ERROR', 'ID Error!')
             return 1
 
-    # def download(self):
         if self.newDict():
             return 1
         n = 1
@@ -190,33 +183,32 @@ ID：{}
                     os.startfile(self.path)
                 break
 
-
-
     def picToBlackWhite(self, filePath):
         if self.Check2Var.get() == 1:
-            self.output('    正在处理图片...... 20%\n')
+            self.output('    正在处理图片\n    20%\n')
             img = Image.open(filePath)
-            img = img.convert('RGBA')
-            H, L = img.size
-            self.output('    正在处理图片...... 48% 此过程较久，耐心等待\n')
-            for i in range(H):
-                for j in range(L):
-                    try:
-
-                        r, g, b, alpha = img.getpixel((i, j))
-                        if alpha==0:
-                            alpha = 100
-                            r = 255
-                            g = 255
-                            b = 255
-                            img.putpixel((i, j), (r, g, b, alpha))
-                    except Exception as e:
-                        continue
-
-            self.output('    正在处理图片...... 90%\n')
-            # imgBlackWhite = img.convert('L')
+            if self.type == '吉他谱':
+                img = img.convert('RGBA')
+                H, L = img.size
+                self.output('\n    48% 此过程较久，耐心等待\n')
+                for i in range(H):
+                    for j in range(L):
+                        try:
+                            r, g, b, alpha = img.getpixel((i, j))
+                            if alpha==0:
+                                alpha = 100
+                                r = 255
+                                g = 255
+                                b = 255
+                                img.putpixel((i, j), (r, g, b, alpha))
+                        except Exception as e:
+                            continue
+            else:
+                self.output('    48%\n')
+                img = img.convert('L')
+            self.output('    90%\n')
             img.save(filePath)
-            self.output('    正在处理图片...... 100%\n')
+            self.output('    100%\n')
 
     def newDict(self):
         if self.emptyPath():
