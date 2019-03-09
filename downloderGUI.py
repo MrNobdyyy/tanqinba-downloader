@@ -14,6 +14,7 @@ from tkinter.messagebox import *
 #import tkinter.simpledialog as tkSimpleDialog    #askstring()
 from tkinter import filedialog
 from PIL import Image
+import threading
 
 class Application_ui(Frame):
     #这个类仅实现界面生成功能，具体事件处理代码在子类Application中。
@@ -42,7 +43,7 @@ class Application_ui(Frame):
 
         self.Check2Var = IntVar(value=0)
         self.style.configure('TCheck2.TCheckbutton', font=('微软雅黑',9))
-        self.Check2 = Checkbutton(self.top, text='以黑白底色输出（不选择底色为黄色）', variable=self.Check2Var, style='TCheck2.TCheckbutton')
+        self.Check2 = Checkbutton(self.top, text='以黑白底色输出（不选择底色为黄色或者透明）', variable=self.Check2Var, style='TCheck2.TCheckbutton')
         self.Check2.setValue = lambda x: self.Check2Var.set(x)
         self.Check2.value = lambda : self.Check2Var.get()
         self.Check2.place(relx=0.066, rely=0.464, relwidth=0.62, relheight=0.072)
@@ -75,9 +76,9 @@ class Application_ui(Frame):
         self.Label3.place(relx=0.066, rely=0.22, relwidth=0.245, relheight=0.049)
 
         self.Text3Var = StringVar(value='输出')
-        self.Text3 = Entry(self.top, textvariable=self.Text3Var, font=('微软雅黑',9))
-        self.Text3.setText = lambda x: self.Text3Var.set(x)
-        self.Text3.text = lambda : self.Text3Var.get()
+        self.Text3 = Text(self.top, font=('微软雅黑',9))
+        # self.Text3.setText = lambda x: self.Text3Var.set(x)
+        # self.Text3.text = lambda : self.Text3Var.get()
         self.Text3.place(relx=0.066, rely=0.557, relwidth=0.862, relheight=0.235)
 
         self.Combo1List = ['钢琴谱', '吉他谱']
@@ -118,10 +119,11 @@ class Application(Application_ui):
         if self.type != '钢琴谱' and self.type != '吉他谱':
             showerror('Error', 'Choose the type.')
             return
-        if self.getUrl():
-            return
-        if self.download():
-            return
+        # if self.getUrl():
+        #     return
+        self.starting()
+        # if self.download():
+        #     return
 
 
 
@@ -130,24 +132,8 @@ class Application(Application_ui):
         path = filedialog.askdirectory()
         self.Text2Var.set(path)
 
-    def download(self):
-        if self.newDict():
-            return 1
-        n = 1
-        while True:
-            try:
-                request.urlretrieve(self.imgUrlStr, '%s/%s.png' % (self.path, str(n)))  # 下载图片
-                self.picToBlackWhite('%s/%s.png' % (self.path, str(n)))  # 黑白
-                self.imgUrlStr = self.imgUrlStr.replace(str(n - 1) + '.png', str(n) + '.png')
-                n += 1
-            except:
-                # print('Done!')
-                yesNo = askyesno('Done!', '“' + self.title + '” 下载完成！打开文件夹？')
-                if yesNo == True:
-                    os.startfile(self.path)
-                break
-
     def getUrl(self):
+        self.Text3.insert(INSERT, '正在获取下载链接......\n')
         id = self.Text1Var.get()
         if self.type == '钢琴谱':
             url = 'http://www.tan8.com/codeindex.php?d=web&c=weixin&m=piano&id={}'.format(id)
@@ -169,18 +155,54 @@ class Application(Application_ui):
                 self.imgUrlStr = self.imgUrlStr.replace('image', 'web_image')
                 titleInPageList = bf.find_all('h1', class_='title_color')
                 self.title = titleInPageList[0].text
+            self.Text3.insert(INSERT, '获取完成！\n')
         except IndexError:
             showerror('ERROR', 'ID Error!')
             return 1
 
+    # def download(self):
+        if self.newDict():
+            return 1
+        n = 1
+        while True:
+            try:
+                request.urlretrieve(self.imgUrlStr, '%s/%s.png' % (self.path, str(n)))  # 下载图片
+                self.output('第{}张正在下载......\n'.format(str(n)))
+                self.picToBlackWhite('%s/%s.png' % (self.path, str(n)))  # 黑白
+                if self.type == '钢琴谱':
+                    self.imgUrlStr = self.imgUrlStr.replace(str(n - 1) + '.png', str(n) + '.png')
+                else:
+                    self.imgUrlStr = self.imgUrlStr.replace(str(n) + '.png', str(n+1) + '.png')
+                self.output('第{}张下载完成！\n'.format(str(n)))
+                n += 1
+            except:
+                info = '''
+★★★完成★★★
+ID：{}      
+乐谱类型：{} 
+乐谱名字：【{}】
+乐谱数量：{}
+路径：{}
+★★★★★★★★★★★'''.format(id, self.type, self.title, str(n-1),self.path)
+                self.output(info)
+                yesNo = askyesno('Done!', '“' + self.title + '” 下载完成！打开文件夹？')
+                if yesNo == True:
+                    os.startfile(self.path)
+                break
+
+
+
     def picToBlackWhite(self, filePath):
         if self.Check2Var.get() == 1:
+            self.output('    正在处理图片...... 20%\n')
             img = Image.open(filePath)
             img = img.convert('RGBA')
             H, L = img.size
+            self.output('    正在处理图片...... 48% 此过程较久，耐心等待\n')
             for i in range(H):
                 for j in range(L):
                     try:
+
                         r, g, b, alpha = img.getpixel((i, j))
                         if alpha==0:
                             alpha = 100
@@ -190,8 +212,11 @@ class Application(Application_ui):
                             img.putpixel((i, j), (r, g, b, alpha))
                     except Exception as e:
                         continue
+
+            self.output('    正在处理图片...... 90%\n')
             # imgBlackWhite = img.convert('L')
             img.save(filePath)
+            self.output('    正在处理图片...... 100%\n')
 
     def newDict(self):
         if self.emptyPath():
@@ -210,6 +235,14 @@ class Application(Application_ui):
             showerror('Error', 'Path Error')
             return 1
 
+    def starting(self):
+        self.thread = threading.Thread(target=self.getUrl)
+        self.thread.setDaemon(True)
+        self.thread.start()
+
+    def output(self, s):
+        self.Text3.insert(END, s)
+        self.Text3.see(END)
 if __name__ == "__main__":
     top = Tk()
     Application(top).mainloop()
