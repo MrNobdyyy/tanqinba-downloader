@@ -15,6 +15,7 @@ from tkinter.messagebox import *
 from tkinter import filedialog
 from PIL import Image
 import threading
+import webbrowser
 
 class Application_ui(Frame):
     #这个类仅实现界面生成功能，具体事件处理代码在子类Application中。
@@ -108,14 +109,27 @@ class Application_ui(Frame):
         self.Label2.text = lambda : self.Label2Var.get()
         self.Label2.place(relx=0.507, rely=0.081, relwidth=0.245, relheight=0.049)
 
+        self.Command3Var = StringVar(value='使用说明和原理详解')
+        self.style.configure('TCommand3.TButton', background='#FFFFFF', font=('微软雅黑', 9, 'italic', 'underline'))
+        self.Command3 = Button(self.top, text='使用说明和原理详解', textvariable=self.Command3Var, command=self.Command3_Cmd, style='TCommand3.TButton')
+        self.Command3.setText = lambda x: self.Command3Var.set(x)
+        self.Command3.text = lambda: self.Command3Var.get()
+        self.Command3.place(relx=0.055, rely=0.012, relwidth=0.433, relheight=0.061)
+
+        self.Command4Var = StringVar(value='GitHub查看源码')
+        self.style.configure('TCommand4.TButton', background='#FFFFFF', font=('微软雅黑', 9, 'italic', 'underline'))
+        self.Command4 = Button(self.top, text='GitHub查看源码', textvariable=self.Command4Var, command=self.Command4_Cmd, style='TCommand4.TButton')
+        self.Command4.setText = lambda x: self.Command4Var.set(x)
+        self.Command4.text = lambda: self.Command4Var.get()
+        self.Command4.place(relx=0.507, rely=0.012, relwidth=0.421, relheight=0.061)
+
 
 class Application(Application_ui):
     #这个类实现具体的事件处理回调函数。界面生成代码在Application_ui中。
     def __init__(self, master=None):
         Application_ui.__init__(self, master)
 
-        self.output('程序仅供学习和研究。禁止用于商业用途！一切后果作者不予承担，使用程序即代表同意\n'
-                    'GitHub源码：https://github.com/MrNobdyyy/tanqinba-downloader')
+        self.output('程序仅供学习和研究。禁止用于商业用途！一切后果作者不予承担，使用程序即代表同意\n')
     def Command2_Cmd(self, event=None):
         self.type = self.Combo1Var.get()
         if self.type != '钢琴谱' and self.type != '吉他谱':
@@ -127,6 +141,12 @@ class Application(Application_ui):
         '''浏览 点击后打开选择文件夹窗口'''
         path = filedialog.askdirectory()
         self.Text2Var.set(path)
+
+    def Command3_Cmd(self, event=None):
+        webbrowser.open('https://www.evernote.com/shard/s515/sh/f61c5e17-1f2f-458e-b93b-ab5dadc8efe3/bafb0eb1c2e26de49043ffd0a775dfea')
+
+    def Command4_Cmd(self, event=None):
+        webbrowser.open('https://github.com/MrNobdyyy/tanqinba-downloader')
 
     def getUrl(self):
         self.Text3.insert(INSERT, '\n\n正在获取下载链接......\n')
